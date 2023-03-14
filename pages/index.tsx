@@ -7,7 +7,12 @@ import { useLesson } from "../components/hooks";
 import { useState } from "react";
 
 export default function Home() {
-  const { conversationParts, start, respond } = useLesson("math", 1);
+  const [subject, setSubject] = useState<"math" | "english" | "">("");
+  const [grade, setGrade] = useState<-1 | 1 | 2 | 3 | 4 | 5>(-1);
+  const { conversationParts, start, respond, loading } = useLesson(
+    subject,
+    grade
+  );
 
   const [responseValue, setResponseValue] = useState<string>("");
 
@@ -16,18 +21,45 @@ export default function Home() {
       <Head>
         <title>{siteTitle}</title>
       </Head>
-      {/* <section className={utilStyles.headingMd}>
-        <p>Mr. Tutor</p>
-      </section> */}
       <section className={`${utilStyles.headingMd} ${utilStyles.padding1px}`}>
-        {/* <h2 className={utilStyles.headingLg}>Blog</h2> */}
-        <button onClick={start}>Start</button>
+        <select
+          disabled={loading}
+          onChange={(e) => setSubject(e.target.value as any)}
+        >
+          <option value={""}>Select a subject</option>
+          <option value="math">Math</option>
+          <option value="english">English</option>
+        </select>
+        <br />
+        <select
+          disabled={loading}
+          onChange={(e) => setGrade(parseInt(e.target.value) as any)}
+        >
+          <option value={"-1"}>Select a grade</option>
+          <option value={"1"}>1</option>
+          <option value={"2"}>2</option>
+          <option value={"3"}>3</option>
+          <option value={"4"}>4</option>
+          <option value={"5"}>5</option>
+        </select>
+        <br />
+        <button disabled={!subject || grade === -1 || loading} onClick={start}>
+          Start
+        </button>
         <br />
         {conversationParts
           .filter(({ role }) => role !== "system")
-          .map(({ content }, idx) => (
-            <div key={idx}>{content}</div>
-          ))}
+          .map(({ content }, idx) => {
+            const parts = content.split("\n");
+            return (
+              <div key={idx}>
+                {parts.map((part, idx) => (
+                  <p key={idx}>{part}</p>
+                ))}
+              </div>
+            );
+          })}
+        {loading && <p>Mr. Tutor is typing...</p>}
         <input
           type="text"
           value={responseValue}
@@ -35,6 +67,7 @@ export default function Home() {
         />
         <br />
         <button
+          disabled={!responseValue || loading}
           onClick={() => {
             respond(responseValue);
             setResponseValue("");

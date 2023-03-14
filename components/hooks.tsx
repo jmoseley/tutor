@@ -1,22 +1,28 @@
 import axios, { AxiosResponse } from "axios";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Response as StartLessonResponse } from "../pages/api/startLesson";
 import { nanoid } from "nanoid";
 import { RequestParams, Response as NextResponse } from "../pages/api/next";
 
 export const useLesson = (
-  subject: "math" | "english",
-  grade: number,
+  subject: "math" | "english" | "",
+  grade: 1 | 2 | 3 | 4 | 5 | -1,
   userName = "Bobby"
 ) => {
   const [userId] = useState<string>(nanoid());
+  const [loading, setLoading] = useState<boolean>(false);
 
   const [conversationParts, setConversationParts] = useState<
     { role: "system" | "user" | "assistant"; content: string }[]
   >([]);
 
   const start = useCallback(async () => {
+    if (!subject || grade === -1) {
+      return;
+    }
+
     try {
+      setLoading(true);
       const result = await axios.get<
         StartLessonResponse,
         AxiosResponse<StartLessonResponse>
@@ -31,12 +37,25 @@ export const useLesson = (
       setConversationParts([...conversationParts, result.data.response]);
     } catch (e) {
       console.error(e);
+    } finally {
+      setLoading(false);
     }
-  }, [userId, userName]);
+  }, [userId, userName, subject, grade]);
 
   const respond = useCallback(
     async (userResponse: string) => {
+      if (!subject || grade === -1) {
+        return;
+      }
+
       try {
+        const newConversationParts = [
+          ...conversationParts,
+          { role: "user", content: userResponse },
+        ];
+        setConversationParts(newConversationParts);
+
+        setLoading(true);
         const result = await axios.post<
           NextResponse,
           AxiosResponse<NextResponse>,
@@ -54,17 +73,15 @@ export const useLesson = (
           return;
         }
 
-        setConversationParts([
-          ...conversationParts,
-          { role: "user", content: userResponse },
-          result.data.response,
-        ]);
+        setConversationParts([...newConversationParts, result.data.response]);
       } catch (e) {
         console.error(e);
+      } finally {
+        setLoading(false);
       }
     },
-    [userId, conversationParts]
+    [userId, conversationParts, subject, grade]
   );
 
-  return { start, conversationParts, respond };
+  return { start, conversationParts, respond, loading };
 };

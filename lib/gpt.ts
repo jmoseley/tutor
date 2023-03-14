@@ -20,7 +20,7 @@ export async function complete(
     user: userId,
   });
 
-  console.log("data", response.data);
+  console.log("data", JSON.stringify(response.data, null, 2));
 
   if (response.data.choices.length === 0 || !response.data.choices[0].message) {
     throw new Error("No response from OpenAI");
