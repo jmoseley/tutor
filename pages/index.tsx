@@ -4,9 +4,12 @@ import utilStyles from "../styles/utils.module.css";
 import Link from "next/link";
 import Date from "../components/date";
 import { useLesson } from "../components/hooks";
+import { useState } from "react";
 
 export default function Home() {
-  const { content } = useLesson("math", 1);
+  const { conversationParts, start, respond } = useLesson("math", 1);
+
+  const [responseValue, setResponseValue] = useState<string>("");
 
   return (
     <Layout home>
@@ -18,9 +21,27 @@ export default function Home() {
       </section> */}
       <section className={`${utilStyles.headingMd} ${utilStyles.padding1px}`}>
         {/* <h2 className={utilStyles.headingLg}>Blog</h2> */}
-        {content.map((content, idx) => (
-          <div key={idx}>{content}</div>
-        ))}
+        <button onClick={start}>Start</button>
+        <br />
+        {conversationParts
+          .filter(({ role }) => role !== "system")
+          .map(({ content }, idx) => (
+            <div key={idx}>{content}</div>
+          ))}
+        <input
+          type="text"
+          value={responseValue}
+          onChange={(e) => setResponseValue(e.target.value)}
+        />
+        <br />
+        <button
+          onClick={() => {
+            respond(responseValue);
+            setResponseValue("");
+          }}
+        >
+          Respond
+        </button>
       </section>
     </Layout>
   );

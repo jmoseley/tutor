@@ -20,7 +20,11 @@ export async function complete(
     user: userId,
   });
 
-  console.log(response.data);
+  console.log("data", response.data);
+
+  if (response.data.choices.length === 0 || !response.data.choices[0].message) {
+    throw new Error("No response from OpenAI");
+  }
 
   return response.data.choices[0].message;
 }

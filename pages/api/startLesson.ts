@@ -2,6 +2,7 @@ import { NextApiHandler } from "next";
 import { ChatCompletionResponseMessage } from "openai";
 import { ApiError } from "../../lib/api";
 import { complete } from "../../lib/gpt";
+import { generatePromptMessages } from "../../lib/lesson";
 
 export type Response =
   | {
@@ -37,29 +38,19 @@ const startLesson: NextApiHandler<Response> = async (req, res) => {
     return;
   }
 
-  const lessonContent = await complete(
-    [
-      {
-        role: "system",
-        content: `You are acting as a ${subject} tutor for a child in grade ${grade}. Your goal is to help the child learn the subject and work on practice problems with them. You will introduce the basics of the subject, and then present practice problems to the child.`,
-      },
-      {
-        role: "user",
-        content: `Hi my name is ${userName}. I am in grade ${grade}. I am having trouble with ${subject}.`,
-        name: userName,
-      },
-    ],
-    userId
-  );
+  try {
+    const response = await complete(
+      generatePromptMessages(userName, subject, grade),
+      userId
+    );
 
-  if (!lessonContent) {
+    res.json({ kind: "success", response });
+  } catch (e: any) {
+    console.error(e?.response?.data || e);
     res
       .status(500)
       .json({ kind: "ApiError", code: 500, message: "Internal Server Error" });
-    return;
   }
-
-  res.json({ kind: "success", response: lessonContent });
 };
 
 export default startLesson;

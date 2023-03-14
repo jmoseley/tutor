@@ -1,28 +1,70 @@
-import axios from "axios";
-import { useEffect, useState } from "react";
-import { Response } from "../pages/api/startLesson";
+import axios, { AxiosResponse } from "axios";
+import { useCallback, useState } from "react";
+import { Response as StartLessonResponse } from "../pages/api/startLesson";
 import { nanoid } from "nanoid";
+import { RequestParams, Response as NextResponse } from "../pages/api/next";
 
-export const useLesson = (subject: "math" | "english", grade: number) => {
+export const useLesson = (
+  subject: "math" | "english",
+  grade: number,
+  userName = "Bobby"
+) => {
   const [userId] = useState<string>(nanoid());
 
-  const [content, setContent] = useState<string[]>([]);
+  const [conversationParts, setConversationParts] = useState<
+    { role: "system" | "user" | "assistant"; content: string }[]
+  >([]);
 
-  useEffect(() => {
-    (async () => {
-      const result = await axios.get<{}, { data: Response }>(
-        `/api/startLesson?subject=${subject}&grade=${grade}&userId=${userId}&userName=child1`
+  const start = useCallback(async () => {
+    try {
+      const result = await axios.get<
+        StartLessonResponse,
+        AxiosResponse<StartLessonResponse>
+      >(
+        `/api/startLesson?subject=${subject}&grade=${grade}&userId=${userId}&userName=${userName}`
       );
-
-      console.log("start lesson result", result);
 
       if (result.data.kind === "ApiError") {
         return;
       }
 
-      setContent([...content, result.data.response.content]);
-    })();
-  }, []);
+      setConversationParts([...conversationParts, result.data.response]);
+    } catch (e) {
+      console.error(e);
+    }
+  }, [userId, userName]);
 
-  return { content };
+  const respond = useCallback(
+    async (userResponse: string) => {
+      try {
+        const result = await axios.post<
+          NextResponse,
+          AxiosResponse<NextResponse>,
+          RequestParams
+        >("/api/next", {
+          userId,
+          userResponse,
+          userName,
+          previousMessages: conversationParts,
+          subject,
+          grade: grade.toString(),
+        });
+
+        if (result.data.kind === "ApiError") {
+          return;
+        }
+
+        setConversationParts([
+          ...conversationParts,
+          { role: "user", content: userResponse },
+          result.data.response,
+        ]);
+      } catch (e) {
+        console.error(e);
+      }
+    },
+    [userId, conversationParts]
+  );
+
+  return { start, conversationParts, respond };
 };
