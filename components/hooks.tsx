@@ -51,7 +51,7 @@ export const useLesson = (
       try {
         const newConversationParts = [
           ...conversationParts,
-          { role: "user", content: userResponse },
+          { role: "user" as const, content: userResponse },
         ];
         setConversationParts(newConversationParts);
 
