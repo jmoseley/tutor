@@ -1,8 +1,14 @@
 import axios, { AxiosResponse } from "axios";
-import { useCallback, useEffect, useState } from "react";
-import { Response as StartLessonResponse } from "../pages/api/startLesson";
+import { useCallback, useState } from "react";
+import {
+  Response as StartLessonResponse,
+  RequestInput as StartLessonRequestInput,
+} from "../pages/api/startLesson";
 import { nanoid } from "nanoid";
-import { RequestParams, Response as NextResponse } from "../pages/api/next";
+import {
+  RequestInput as NextRequestInput,
+  Response as NextResponse,
+} from "../pages/api/next";
 
 export const useLesson = (
   subject: "math" | "english" | "",
@@ -23,14 +29,22 @@ export const useLesson = (
 
     try {
       setLoading(true);
-      const result = await axios.get<
+      const result = await axios.post<
         StartLessonResponse,
-        AxiosResponse<StartLessonResponse>
-      >(
-        `/api/startLesson?subject=${subject}&grade=${grade}&userId=${userId}&userName=${userName}`
-      );
+        AxiosResponse<StartLessonResponse>,
+        StartLessonRequestInput
+      >(`/api/startLesson`, {
+        userId,
+        userName,
+        subject,
+        grade: grade.toString(),
+      });
 
       if (result.data.kind === "ApiError") {
+        setConversationParts([
+          ...conversationParts,
+          { role: "system", content: `Error: ${result.data.message}` },
+        ]);
         return;
       }
 
@@ -59,7 +73,7 @@ export const useLesson = (
         const result = await axios.post<
           NextResponse,
           AxiosResponse<NextResponse>,
-          RequestParams
+          NextRequestInput
         >("/api/next", {
           userId,
           userResponse,
@@ -70,6 +84,10 @@ export const useLesson = (
         });
 
         if (result.data.kind === "ApiError") {
+          setConversationParts([
+            ...conversationParts,
+            { role: "system", content: `Error: ${result.data.message}` },
+          ]);
           return;
         }
 
