@@ -51,7 +51,7 @@ const next = async (req: NextRequest, context: NextFetchEvent) => {
           message.role !== "assistant")
     )
   ) {
-    console.log("Bad Request", {
+    console.error("Bad Request", {
       previousMessages,
       userId,
       userName,
@@ -79,7 +79,7 @@ const next = async (req: NextRequest, context: NextFetchEvent) => {
 
     return new Response(stream);
   } catch (e: any) {
-    console.log("Error", e?.response?.data || e);
+    console.error("Error", e?.response?.data || e);
     return NextResponse.json(
       { kind: "ApiError", code: 500, message: "Internal Server Error" },
       { status: 500 }

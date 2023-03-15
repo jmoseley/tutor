@@ -39,7 +39,7 @@ const startLesson = async (req: NextRequest, context: NextFetchEvent) => {
     typeof userName !== "string" ||
     (subject !== "math" && subject !== "english")
   ) {
-    console.log("Bad Request", { subject, grade, userId, userName });
+    console.error("Bad Request", { subject, grade, userId, userName });
     return NextResponse.json(
       { kind: "ApiError", code: 400, message: "Bad Request" },
       { status: 400 }
