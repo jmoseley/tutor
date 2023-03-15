@@ -118,6 +118,7 @@ export const useLesson = (
         ]);
         console.error(e);
       } finally {
+        setLoading(false);
       }
     },
     [userId, conversationParts, subject, grade]
