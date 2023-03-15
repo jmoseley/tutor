@@ -6,7 +6,7 @@ import {
 } from "eventsource-parser";
 
 const BASE_CONFIG = {
-  model: "gpt-3.5-turbo",
+  model: "gpt-3.5-turbo-0301",
   temperature: 0.2,
   presence_penalty: -1,
   n: 1,
