@@ -1,6 +1,6 @@
 import { ChatCompletionResponseMessage } from "openai";
 import { ApiError } from "../../lib/api";
-import { complete } from "../../lib/gpt";
+import { streamChatCompletion } from "../../lib/gpt";
 import { generatePromptMessages } from "../../lib/lesson";
 import { NextResponse } from "next/server";
 import type { NextFetchEvent, NextRequest } from "next/server";
@@ -47,12 +47,12 @@ const startLesson = async (req: NextRequest, context: NextFetchEvent) => {
   }
 
   try {
-    const response = await complete(
+    const stream = await streamChatCompletion(
       generatePromptMessages(userName, subject, grade),
       userId
     );
 
-    return NextResponse.json({ kind: "success", response });
+    return new Response(stream);
   } catch (e: any) {
     console.error(e?.response?.data || e);
     return NextResponse.json(

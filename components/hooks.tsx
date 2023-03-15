@@ -29,27 +29,37 @@ export const useLesson = (
 
     try {
       setLoading(true);
-      const result = await axios.post<
-        StartLessonResponse,
-        AxiosResponse<StartLessonResponse>,
-        StartLessonRequestInput
-      >(`/api/startLesson`, {
+      const body: StartLessonRequestInput = {
         userId,
         userName,
         subject,
         grade: grade.toString(),
+      };
+      const result = await fetch("/api/startLesson", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
       });
-
-      if (result.data.kind === "ApiError") {
-        setConversationParts([
-          ...conversationParts,
-          { role: "system", content: `Error: ${result.data.message}` },
-        ]);
-        return;
+      if (result.status !== 200) {
+        throw new Error("Something went wrong");
       }
+      setLoading(false);
 
-      setConversationParts([...conversationParts, result.data.response]);
+      let response = "";
+      await readStream(result, (text) => {
+        response = response + text;
+        setConversationParts([{ role: "assistant", content: response }]);
+      });
     } catch (e) {
+      setConversationParts([
+        ...conversationParts,
+        {
+          role: "system",
+          content: "Something went wrong. Please try again.",
+        },
+      ]);
       console.error(e);
     } finally {
       setLoading(false);
@@ -70,32 +80,44 @@ export const useLesson = (
         setConversationParts(newConversationParts);
 
         setLoading(true);
-        const result = await axios.post<
-          NextResponse,
-          AxiosResponse<NextResponse>,
-          NextRequestInput
-        >("/api/next", {
+        const body: NextRequestInput = {
           userId,
           userResponse,
           userName,
           previousMessages: conversationParts,
           subject,
           grade: grade.toString(),
+        };
+        const result = await fetch("/api/next", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
         });
-
-        if (result.data.kind === "ApiError") {
-          setConversationParts([
-            ...conversationParts,
-            { role: "system", content: `Error: ${result.data.message}` },
-          ]);
-          return;
+        if (result.status !== 200) {
+          throw new Error("Something went wrong");
         }
+        setLoading(false);
 
-        setConversationParts([...newConversationParts, result.data.response]);
+        let response = "";
+        await readStream(result, (text) => {
+          response = response + text;
+          setConversationParts([
+            ...newConversationParts,
+            { role: "assistant", content: response },
+          ]);
+        });
       } catch (e) {
+        setConversationParts([
+          ...conversationParts,
+          {
+            role: "system",
+            content: "Something went wrong. Please try again.",
+          },
+        ]);
         console.error(e);
       } finally {
-        setLoading(false);
       }
     },
     [userId, conversationParts, subject, grade]
@@ -103,3 +125,20 @@ export const useLesson = (
 
   return { start, conversationParts, respond, loading };
 };
+
+async function readStream(response: Response, onText: (text: string) => void) {
+  const data = response.body;
+  if (!data) {
+    return;
+  }
+  const reader = data.getReader();
+  const decoder = new TextDecoder();
+  let done = false;
+
+  while (!done) {
+    const { value, done: doneReading } = await reader.read();
+    done = doneReading;
+    const chunkValue = decoder.decode(value);
+    onText(chunkValue);
+  }
+}
